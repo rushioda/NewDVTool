@@ -104,47 +104,12 @@ namespace VKalVrtAthena {
         float dz0_j = z0_j - m_thePV->z();
         float z0sig_i = dz0_i/sqrt((*itrk)->definingParametersCovMatrix()(1,1));
         float z0sig_j = dz0_j/sqrt((*jtrk)->definingParametersCovMatrix()(1,1));
-        uint8_t IBLHits_i, BLayHits_i, PixelHits_i, SCTHits_i; 
-        uint8_t IBLHits_j, BLayHits_j, PixelHits_j, SCTHits_j; 
-        float FirstHit_i, FirstHit_j, diffHits;
-        (*itrk)->summaryValue( IBLHits_i, xAOD::numberOfInnermostPixelLayerHits );
-        (*itrk)->summaryValue( BLayHits_i, xAOD::numberOfNextToInnermostPixelLayerHits );
-        (*itrk)->summaryValue( PixelHits_i, xAOD::numberOfPixelHits );
-        (*itrk)->summaryValue( SCTHits_i, xAOD::numberOfSCTHits );
-        (*jtrk)->summaryValue( IBLHits_j, xAOD::numberOfInnermostPixelLayerHits );
-        (*jtrk)->summaryValue( BLayHits_j, xAOD::numberOfNextToInnermostPixelLayerHits );
-        (*jtrk)->summaryValue( PixelHits_j, xAOD::numberOfPixelHits );
-        (*jtrk)->summaryValue( SCTHits_j, xAOD::numberOfSCTHits );
-        if(IBLHits_i > 0){
-           FirstHit_i = 1;
-        }else if(BLayHits_i > 0){
-           FirstHit_i = 2;
-        }else if(PixelHits_i > 0){
-           FirstHit_i = 3;
-        }else if(SCTHits_i > 0){
-           FirstHit_i = 4;
-        }else if(PixelHits_i == 0 && SCTHits_i == 0){
-           FirstHit_i = 0;
-        }else{
-           FirstHit_i = -999;
-        }
-        if(IBLHits_j > 0){
-           FirstHit_j = 1;
-        }else if(BLayHits_j > 0){
-           FirstHit_j = 2;
-        }else if(PixelHits_j > 0){
-           FirstHit_j = 3;
-        }else if(SCTHits_j > 0){
-           FirstHit_j = 4;
-        }else if(PixelHits_j == 0 && SCTHits_j == 0){
-           FirstHit_j = 0;
-        }else{
-           FirstHit_j = -999;
-        }
-        diffHits = abs(FirstHit_i - FirstHit_j);
+        float FirstHit_i = getFirstHitCategory(*itrk);
+        float FirstHit_j = getFirstHitCategory(*jtrk);
+        float diffHits = abs(FirstHit_i - FirstHit_j);
+
         std::vector<float*> VARS({&eta_i, &eta_j, &dEta, &dPhi, &AsymPt, &d0_i, &d0_j, &d0sig_i, &d0sig_j, &z0_i, &z0_j, &dz0_i, &dz0_j, &z0sig_i, &z0sig_j, &FirstHit_i, &FirstHit_j, &diffHits});
 
-        //float wgtSelect=m_SV2T_BDT->GetGradBoostMVA(VARS);
         //std::vector<float> weights=m_SV2T_BDT->GetMultiResponse(VARS,3);
 	      //float wgtSelect=weights[0];
         bdt->SetPointers(VARS);
@@ -2110,6 +2075,25 @@ namespace VKalVrtAthena {
 
   } // getSVImpactParameters
 
-
+  float VrtSecFuzzy::getFirstHitCategory(const xAOD::TrackParticle* trk){
+    uint8_t IBLHits, BLayHits, PixelHits, SCTHits;
+    trk->summaryValue( IBLHits, xAOD::numberOfInnermostPixelLayerHits );
+    trk->summaryValue( BLayHits, xAOD::numberOfNextToInnermostPixelLayerHits );
+    trk->summaryValue( PixelHits, xAOD::numberOfPixelHits );
+    trk->summaryValue( SCTHits, xAOD::numberOfSCTHits );
+    if(IBLHits > 0){
+      return 1;
+    }else if(BLayHits > 0){
+      return 2;
+    }else if(PixelHits > 0){
+      return 3;
+    }else if(SCTHits > 0){
+      return 4;
+    }else if(PixelHits == 0 && SCTHits == 0){
+      return 0;
+    }else{
+      return -999;
+    }
+  }
 
 } // end of namespace VKalVrtAthena

@@ -171,6 +171,7 @@ namespace VKalVrtAthena {
     
     // Vertexing algorithm configuration
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "extractIncompatibleTrackPairs", &VrtSecFuzzy::extractIncompatibleTrackPairs )     );
+/*
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "findNtrackVertices",            &VrtSecFuzzy::findNtrackVertices )                );
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "rearrangeTracks",               &VrtSecFuzzy::rearrangeTracks)                    );
     
@@ -191,7 +192,7 @@ namespace VKalVrtAthena {
     }
     
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "refitAndSelect",                &VrtSecFuzzy::refitAndSelectGoodQualityVertices ) );
-
+*/
     
     // now make histograms/ntuples
     
