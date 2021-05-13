@@ -766,6 +766,14 @@ namespace VKalVrtAthena {
     declareProperty("Extrapolator",                    m_extrapolator                                                       );
     declareProperty("VertexMapper",                    m_vertexMapper                                                       );
     
+    // BDT, Ushioda
+    declareProperty("BDTFileName",                     m_jp.BDTFileName                                                        );
+    declareProperty("BDTFileName_long",                m_jp.BDTFileName_long                                                   );
+    declareProperty("BDTFileName_middle",              m_jp.BDTFileName_middle                                                 );
+    declareProperty("BDTFileName_short",               m_jp.BDTFileName_short                                                  );
+    declareProperty("BDTMin_long",                     m_jp.BDTMin_long                                                        );
+    declareProperty("BDTMin_middle",                   m_jp.BDTMin_middle                                                      );
+    declareProperty("BDTMin_short",                    m_jp.BDTMin_short                                                       );
   }
   
   

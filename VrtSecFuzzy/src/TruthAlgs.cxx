@@ -74,14 +74,14 @@ namespace VKalVrtAthena {
       const truthLink& link = trk->auxdataConst< truthLink >( "truthParticleLink" );
       
       if (  ! link ) {
-	fake_tracks.emplace_back(  trk );
-	continue;
+	      fake_tracks.emplace_back(  trk );
+	      continue;
       }
       
       const xAOD::TruthParticle *truth = *link;
       if(  ! truth->hasProdVtx() ) {
-	orphan_tracks.emplace_back(  trk );
-	continue;
+	      orphan_tracks.emplace_back(  trk );
+	      continue;
       }
       
       reco_tracks.emplace_back(  trk );

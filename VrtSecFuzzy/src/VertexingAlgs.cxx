@@ -44,13 +44,14 @@ namespace VKalVrtAthena {
   //____________________________________________________________________________________________________
   StatusCode VrtSecFuzzy::extractIncompatibleTrackPairs( std::vector<WrkVrt>* workVerticesContainer )
   {
+    try {
 
     // Output SVs as xAOD::Vertex
     // Needs a conversion function from WrkVrtSet to xAOD::Vertex here.
     // The supposed form of the function will be as follows:
     const xAOD::TrackParticleContainer* trackParticleContainer ( nullptr );
     ATH_CHECK( evtStore()->retrieve( trackParticleContainer, m_jp.TrackLocation) );
-   
+  
     xAOD::VertexContainer *twoTrksVertexContainer( nullptr );
     if( m_jp.FillIntermediateVertices ) {
       ATH_CHECK( evtStore()->retrieve( twoTrksVertexContainer, "VrtSecFuzzy_" + m_jp.all2trksVerticesContainerName + m_jp.augVerString ) );
@@ -61,18 +62,18 @@ namespace VKalVrtAthena {
     // Work variables
     std::vector<const xAOD::TrackParticle*>    baseTracks;
     std::vector<const xAOD::NeutralParticle*>  dummyNeutrals;
-   
+ 
     ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": Selected Tracks = "<< m_selectedTracks->size());
     if( m_jp.FillHist ) { m_hists["selTracksDist"]->Fill( m_selectedTracks->size() ); }
     
     std::string msg;
-    
+  
     enum recoStep { kStart, kInitVtxPosition, kImpactParamCheck, kVKalVrtFit, kChi2, kVposCut, kPatternMatch };
-    
+  
     const double maxR { 563. };         // r = 563 mm is the TRT inner surface
     const double roughD0Cut { 100. };
     const double roughZ0Cut { 50.  };
-    
+  
     // Truth match map
     std::map<const xAOD::TruthVertex*, bool> matchMap;
 
@@ -80,9 +81,9 @@ namespace VKalVrtAthena {
     int nSeedCand = 0;
     for( auto itrk = m_selectedTracks->begin(); itrk != m_selectedTracks->end(); ++itrk ) {
       for( auto jtrk = std::next(itrk); jtrk != m_selectedTracks->end(); ++jtrk ) {
-        
+      
         // avoid both tracks are too close to the beam line
-        
+      
         const int itrk_id = itrk - m_selectedTracks->begin();
         const int jtrk_id = jtrk - m_selectedTracks->begin();
 
@@ -110,13 +111,29 @@ namespace VKalVrtAthena {
 
         std::vector<float*> VARS({&eta_i, &eta_j, &dEta, &dPhi, &AsymPt, &d0_i, &d0_j, &d0sig_i, &d0sig_j, &z0_i, &z0_j, &dz0_i, &dz0_j, &z0sig_i, &z0sig_j, &FirstHit_i, &FirstHit_j, &diffHits});
 
-        //std::vector<float> weights=m_SV2T_BDT->GetMultiResponse(VARS,3);
-	      //float wgtSelect=weights[0];
-        bdt->SetPointers(VARS);
-        float wgtSelect = bdt->GetClassification();
-        if(itrk_id%1000 == 0 && jtrk_id%1000 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << ", BDT = " << wgtSelect << std::endl;
-       
-	      if(wgtSelect<0.0) continue;
+
+        if(m_selectedTracks->size()<100){
+          if(itrk_id%10 == 0 && jtrk_id%10 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << std::endl;
+        }else if(m_selectedTracks->size()<1000){
+          if(itrk_id%100 == 0 && jtrk_id%100 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << std::endl;
+        }else{
+          if(itrk_id%1000 == 0 && jtrk_id%1000 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << std::endl;
+        }
+ 
+        std::vector<float> wgtSelect;
+        for(unsigned int ifile = 0; ifile < bdt.size(); ifile++){
+          bdt[ifile]->SetPointers(VARS);
+          wgtSelect.push_back( bdt[ifile]->GetClassification() );
+        }
+
+        bool storePair = false;
+        for(unsigned int ifile = 0; ifile < wgtSelect.size(); ifile++){  
+          if(wgtSelect.at(ifile)>-0.3){
+            storePair = true;
+          }
+        }
+        if(storePair == false) continue;
+
         nSeedCand++;
 //-------------------------------------------------
 
@@ -124,7 +141,9 @@ namespace VKalVrtAthena {
         wrkvrt.selectedTrackIndices.emplace_back( itrk_id );
         wrkvrt.selectedTrackIndices.emplace_back( jtrk_id );
         
-        if( fabs( (*itrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut && fabs( (*jtrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut ) continue;
+        if( fabs( (*itrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut && fabs( (*jtrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut ){ 
+          continue;
+        }
 
         // Attempt to think the combination is incompatible by default
         m_incomp.emplace_back( std::pair<int, int>(itrk_id, jtrk_id) );
@@ -134,7 +153,7 @@ namespace VKalVrtAthena {
         baseTracks.emplace_back( *jtrk );
 
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kStart );
-        
+      
         // new code to find initial approximate vertex
         Amg::Vector3D initVertex;
 
@@ -143,7 +162,7 @@ namespace VKalVrtAthena {
           ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": fast crude estimation fails ");
           continue;
         }
-        
+      
         if( initVertex.perp() > maxR ) {
           continue;
         }
@@ -152,43 +171,47 @@ namespace VKalVrtAthena {
         std::vector<double> impactParameters;
         std::vector<double> impactParErrors;
         
-        if( !getSVImpactParameters( *itrk, initVertex, impactParameters, impactParErrors) ) continue;
+        if( !getSVImpactParameters( *itrk, initVertex, impactParameters, impactParErrors) ){
+          continue;
+        }
         const auto roughD0_itrk = impactParameters.at(TrkParameter::k_d0);
         const auto roughZ0_itrk = impactParameters.at(TrkParameter::k_z0);
         if( fabs( impactParameters.at(0)) > roughD0Cut || fabs( impactParameters.at(1) ) > roughZ0Cut ) {
           continue;
         }
 
-        if( !getSVImpactParameters( *jtrk, initVertex, impactParameters, impactParErrors) ) continue;
+        if( !getSVImpactParameters( *jtrk, initVertex, impactParameters, impactParErrors) ){ 
+          continue;
+        }
         const auto roughD0_jtrk = impactParameters.at(TrkParameter::k_d0);
         const auto roughZ0_jtrk = impactParameters.at(TrkParameter::k_z0);
         if( fabs( impactParameters.at(0) ) > roughD0Cut || fabs( impactParameters.at(1) ) > roughZ0Cut ) {
           continue;
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kImpactParamCheck );
-        
+       
         m_fitSvc->setApproximateVertex( initVertex.x(), initVertex.y(), initVertex.z() );
-        
+      
         // Vertex VKal Fitting
         sc = m_fitSvc->VKalVrtFit( baseTracks,
                                    dummyNeutrals,
                                    wrkvrt.vertex, wrkvrt.vertexMom, wrkvrt.Charge,
                                    wrkvrt.vertexCov, wrkvrt.Chi2PerTrk,
                                    wrkvrt.TrkAtVrt, wrkvrt.Chi2  );
-        
+      
         if( sc.isFailure() ) {
           continue;          /* No fit */ 
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kVKalVrtFit );
-        
+      
         // Compatibility to the primary vertex.
         Amg::Vector3D vDist = wrkvrt.vertex - m_thePV->position();
         const double vPos = ( vDist.x()*wrkvrt.vertexMom.Px()+vDist.y()*wrkvrt.vertexMom.Py()+vDist.z()*wrkvrt.vertexMom.Pz() )/wrkvrt.vertexMom.Rho();
         const double vPosMomAngT = ( vDist.x()*wrkvrt.vertexMom.Px()+vDist.y()*wrkvrt.vertexMom.Py() ) / vDist.perp() / wrkvrt.vertexMom.Pt();
-        
+      
         double dphi1 = vDist.phi() - (*itrk)->phi(); while( dphi1 > TMath::Pi() ) { dphi1 -= TMath::TwoPi(); } while( dphi1 < -TMath::Pi() ) { dphi1 += TMath::TwoPi(); }
         double dphi2 = vDist.phi() - (*itrk)->phi(); while( dphi2 > TMath::Pi() ) { dphi2 -= TMath::TwoPi(); } while( dphi2 < -TMath::Pi() ) { dphi2 += TMath::TwoPi(); }
-        
+      
         if( m_jp.FillNtuple ) {
           // Fill the 2-track vertex properties to AANT
           m_ntupleVars->get<unsigned int>( "All2TrkVrtNum" )++;
@@ -204,9 +227,10 @@ namespace VKalVrtAthena {
 
         // Create a xAOD::Vertex instance
         xAOD::Vertex *vertex { nullptr };
+//        vertex = new xAOD::Vertex; // Ushioda
         
         if( m_jp.FillIntermediateVertices ) {
-          vertex = new xAOD::Vertex;
+          vertex = new xAOD::Vertex;  
           twoTrksVertexContainer->emplace_back( vertex );
 
           for( auto *trk: baseTracks ) {
@@ -227,25 +251,10 @@ namespace VKalVrtAthena {
           vertex->auxdata<float>("charge") = wrkvrt.Charge;
           vertex->auxdata<float>("vPos")   = vPos;
           vertex->auxdata<bool>("isFake")  = true;
- 	        vertex->auxdata<float>("Eta_i")  = eta_i;
-	        vertex->auxdata<float>("Eta_j")  = eta_j;
-	        vertex->auxdata<float>("deltaEta") = dEta;
-	        vertex->auxdata<float>("deltaPhi") = dPhi;
-	        vertex->auxdata<float>("PtAsym") = AsymPt;
-	        vertex->auxdata<float>("D0_i")   = d0_i;
-	        vertex->auxdata<float>("D0_j")   = d0_j;
-	        vertex->auxdata<float>("D0sig_i") = d0sig_i;
-	        vertex->auxdata<float>("D0sig_j") = d0sig_j;
-	        vertex->auxdata<float>("Z0_i") = z0_i;
-	        vertex->auxdata<float>("Z0_j") = z0_j;
-    	    vertex->auxdata<float>("deltaZ0_i") = dz0_i;
-	        vertex->auxdata<float>("deltaZ0_j") = dz0_j;
-          vertex->auxdata<float>("Z0sig_i") = z0sig_i;
- 	        vertex->auxdata<float>("Z0sig_j") = z0sig_j;
-          vertex->auxdata<float>("FirstHitCategory_i") = FirstHit_i;
-          vertex->auxdata<float>("FirstHitCategory_j") = FirstHit_j;
-          vertex->auxdata<float>("diffHitCategory") = diffHits;
-          vertex->auxdata<float>("BDT") = wgtSelect;
+//          vertex->auxdata<float>("BDT")    = wgtSelect;
+          vertex->auxdata<float>("BDT_long")    = wgtSelect.at(0);
+          vertex->auxdata<float>("BDT_middle")  = wgtSelect.at(1);
+          vertex->auxdata<float>("BDT_short")   = wgtSelect.at(2);
         }
 
 
@@ -259,14 +268,14 @@ namespace VKalVrtAthena {
 
         // track chi2 cut
         if( m_jp.FillHist ) m_hists["2trkChi2Dist"]->Fill( log10( wrkvrt.Chi2 ) );
-        
+      
         if( wrkvrt.fitQuality() > m_jp.SelVrtChi2Cut) {
           ATH_MSG_VERBOSE(" > " << __FUNCTION__ << ": failed to pass chi2 threshold." );
           continue;          /* Bad Chi2 */
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kChi2 );
-        
-        
+      
+      
         ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": attempting form vertex from ( " << itrk_id << ", " << jtrk_id << " )." );
         ATH_MSG_DEBUG( " > " << __FUNCTION__ << ": candidate vertex: "
                        << " isGood  = "            << (wrkvrt.isGood? "true" : "false")
@@ -280,9 +289,9 @@ namespace VKalVrtAthena {
         for( const auto* truthVertex : m_tracingTruthVertices ) {
           Amg::Vector3D vTruth( truthVertex->x(), truthVertex->y(), truthVertex->z() );
           Amg::Vector3D vReco ( wrkvrt.vertex.x(), wrkvrt.vertex.y(), wrkvrt.vertex.z() );
-          
+        
           const auto distance = vReco - vTruth;
-          
+        
           AmgSymMatrix(3) cov;
           cov.fillSymmetric( 0, 0, wrkvrt.vertexCov.at(0) );
           cov.fillSymmetric( 1, 0, wrkvrt.vertexCov.at(1) );
@@ -292,18 +301,18 @@ namespace VKalVrtAthena {
           cov.fillSymmetric( 2, 2, wrkvrt.vertexCov.at(5) );
 
           const double s2 = distance.transpose() * cov.inverse() * distance;
-          
+        
           if( distance.norm() < 2.0 || s2 < 100. )  {
             ATH_MSG_DEBUG ( " > " << __FUNCTION__ << ": truth-matched candidate! : signif^2 = " << s2 );
             matchMap.emplace( truthVertex, true );
           }
         }
-        
+      
         if( m_jp.FillHist ) {
           dynamic_cast<TH2F*>( m_hists["vPosDist"] )->Fill( wrkvrt.vertex.perp(), vPos );
           dynamic_cast<TH2F*>( m_hists["vPosMomAngTDist"] )->Fill( wrkvrt.vertex.perp(), vPosMomAngT );
         }
-        
+      
         if( m_jp.doPVcompatibilityCut ) {
           if( cos( dphi1 ) < -0.8 && cos( dphi2 ) < -0.8 ) {
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass the vPos cut. (both tracks are opposite against the vertex pos)" );
@@ -319,19 +328,19 @@ namespace VKalVrtAthena {
           }
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kVposCut );
-        
+      
         // fake rejection cuts with track hit pattern consistencies
         if( m_jp.removeFakeVrt && !m_jp.removeFakeVrtLate ) {
           if( !this->passedFakeReject( wrkvrt.vertex, (*itrk), (*jtrk) ) ) {
-            
+          
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass fake rejection algorithm." );
             continue;
           }
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kPatternMatch );
-        
+       
         ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": passed fake rejection." );
-        
+      
         if( m_jp.FillNtuple ) {
           // Fill AANT for vertices after fake rejection
           m_ntupleVars->get< unsigned int >( "AfFakVrtNum" )++;
@@ -348,25 +357,23 @@ namespace VKalVrtAthena {
         if( m_jp.FillIntermediateVertices && vertex ) {
           vertex->auxdata<bool>("isFake")  = false;
         }
-
-        
+      
         // Now this vertex passed all criteria and considred to be a compatible vertices.
         // Therefore the track pair is removed from the incompatibility list.
         m_incomp.pop_back();
-        
+      
         wrkvrt.isGood = true;
         
         workVerticesContainer->emplace_back( wrkvrt );
-        
+      
         msg += Form(" (%d, %d), ", itrk_id, jtrk_id );
-        
+      
         if( m_jp.FillHist ) {
           m_hists["initVertexDispD0"]->Fill( roughD0_itrk, initVertex.perp() );
           m_hists["initVertexDispD0"]->Fill( roughD0_jtrk, initVertex.perp() );
           m_hists["initVertexDispZ0"]->Fill( roughZ0_itrk, initVertex.z()    );
           m_hists["initVertexDispZ0"]->Fill( roughZ0_jtrk, initVertex.z()    );
         }
-        
       }
     }
     ATH_MSG_INFO("execute: # seed candidates = " << nSeedCand);
@@ -380,7 +387,11 @@ namespace VKalVrtAthena {
         if( pair.second ) m_hists["nMatchedTruths"]->Fill( 1, pair.first->perp() );
       }
     }
-    
+
+    }catch (bad_alloc) {
+      ATH_MSG_WARNING( " bad_alloc error is detected in extractIncompatibleTrackPairs " );
+    }
+
     return StatusCode::SUCCESS;
   }
 

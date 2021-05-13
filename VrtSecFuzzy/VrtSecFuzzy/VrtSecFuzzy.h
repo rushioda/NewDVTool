@@ -216,6 +216,15 @@ namespace VKalVrtAthena {
       double               mcTrkResolution;
       double               TruthTrkLen;
       
+      // BDT cut, Ushioda
+      std::string BDTFileName;
+      std::string BDTFileName_long;
+      std::string BDTFileName_middle;
+      std::string BDTFileName_short;
+      float BDTMin_long;
+      float BDTMin_middle;
+      float BDTMin_short;
+
     };
     
     struct JobProperties m_jp;
@@ -285,7 +294,9 @@ namespace VKalVrtAthena {
     std::map<std::string, TH1*> m_hists;
     
     // BDT 2021/4/15, Ushioda
-    MVAUtils::BDT *bdt=0;
+//    MVAUtils::BDT *bdt=0;
+    std::vector<MVAUtils::BDT*> bdt; //test
+
     ////////////////////////////////////////////////////////////////////////////////////////
     // 
     // Private member functions

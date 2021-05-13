@@ -27,6 +27,7 @@
 #include "TMVA/Reader.h"
 #include "TMVA/MethodBDT.h"
 #include "MVAUtils/BDT.h"
+#include "PathResolver/PathResolver.h"
 
 
 using namespace std;
@@ -254,22 +255,49 @@ namespace VKalVrtAthena {
     // 
 
 //--------------------------------------------------------
-     std::string fileName="/home/rushioda/BinoWino/NewDVToolDevelopment/athena/Reconstruction/VKalVrt/VrtSecFuzzy/TMVAClassification_BDT.weights.root";   ///For local calibration file
+/*
+     std::string fileName = Form("weightFiles/%s", m_jp.BDTFileName.c_str());
+     std::cout << "filename " << fileName << std::endl;
      TFile* rootFile = TFile::Open(fileName.c_str(), "READ");    
      if (!rootFile) {
-        ATH_MSG_FATAL("Could not retrieve root file: " << fileName);
-        return StatusCode::FAILURE;
+       ATH_MSG_FATAL("Could not retrieve root file: " << fileName);
+       return StatusCode::FAILURE;
      }
      
      TTree *training = (TTree*)rootFile->Get("BDT");
      if (training) {
 	     bdt = new MVAUtils:: BDT(training);
-//       m_SV2T_BDT = std::make_unique<MVAUtils::BDT>(training);
 	     delete training;//<- Crash at finalization if w/o this
 	   }else {
-        ATH_MSG_FATAL("Could not retrieve tree: BDT");
-        return StatusCode::FAILURE;
+       ATH_MSG_FATAL("Could not retrieve tree: BDT");
+       return StatusCode::FAILURE;
      }
+*/
+     std::vector<std::string> fileName = { Form("weightFiles/%s", m_jp.BDTFileName_long.c_str()), 
+                                           Form("weightFiles/%s", m_jp.BDTFileName_middle.c_str()),
+                                           Form("weightFiles/%s", m_jp.BDTFileName_short.c_str())
+                                         };
+
+     for(unsigned int ifile = 0; ifile < fileName.size(); ifile++){
+       TFile* rootFile = TFile::Open(fileName.at(ifile).c_str(), "READ");    
+       if (!rootFile) {
+         ATH_MSG_FATAL("Could not retrieve root file: " << fileName.at(ifile));
+         return StatusCode::FAILURE;
+       }
+     
+       TTree *training = (TTree*)rootFile->Get("BDT");
+       if (training) {
+//         bdt[ifile] = new MVAUtils:: BDT(training);
+         MVAUtils::BDT *tmpBDT = new MVAUtils:: BDT(training);
+	       delete training;//<- Crash at finalization if w/o this
+	       delete rootFile; // test
+         bdt.push_back(tmpBDT);
+       }else {
+          ATH_MSG_FATAL("Could not retrieve tree: BDT");
+          return StatusCode::FAILURE;
+       }
+     }
+
 //--------------------------------------------------------
 
     ATH_MSG_INFO("initialize: Exit VrtSecFuzzy::initialize()");
