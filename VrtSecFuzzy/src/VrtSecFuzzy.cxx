@@ -172,10 +172,10 @@ namespace VKalVrtAthena {
     
     // Vertexing algorithm configuration
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "extractIncompatibleTrackPairs", &VrtSecFuzzy::extractIncompatibleTrackPairs )     );
-/*
+
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "findNtrackVertices",            &VrtSecFuzzy::findNtrackVertices )                );
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "rearrangeTracks",               &VrtSecFuzzy::rearrangeTracks)                    );
-    
+/*    
     if( m_jp.doReassembleVertices ) {
       m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "reassembleVertices",          &VrtSecFuzzy::reassembleVertices )                );
     }
@@ -255,48 +255,24 @@ namespace VKalVrtAthena {
     // 
 
 //--------------------------------------------------------
-/*
-     std::string fileName = Form("weightFiles/%s", m_jp.BDTFileName.c_str());
-     std::cout << "filename " << fileName << std::endl;
-     TFile* rootFile = TFile::Open(fileName.c_str(), "READ");    
-     if (!rootFile) {
-       ATH_MSG_FATAL("Could not retrieve root file: " << fileName);
-       return StatusCode::FAILURE;
-     }
-     
-     TTree *training = (TTree*)rootFile->Get("BDT");
-     if (training) {
-	     bdt = new MVAUtils:: BDT(training);
-	     delete training;//<- Crash at finalization if w/o this
-	   }else {
-       ATH_MSG_FATAL("Could not retrieve tree: BDT");
-       return StatusCode::FAILURE;
-     }
-*/
-     std::vector<std::string> fileName = { Form("weightFiles/%s", m_jp.BDTFileName_long.c_str()), 
-                                           Form("weightFiles/%s", m_jp.BDTFileName_middle.c_str()),
-                                           Form("weightFiles/%s", m_jp.BDTFileName_short.c_str())
-                                         };
+    for(unsigned int ifile = 0; ifile < m_jp.BDTFilesName.size(); ifile++){
+      TFile* rootFile = TFile::Open(Form("weightFiles/%s", m_jp.BDTFilesName.at(ifile).c_str()), "READ");    
+      if (!rootFile) {
+        ATH_MSG_FATAL("Could not retrieve root file: " << m_jp.BDTFilesName.at(ifile));
+        return StatusCode::FAILURE;
+      }
 
-     for(unsigned int ifile = 0; ifile < fileName.size(); ifile++){
-       TFile* rootFile = TFile::Open(fileName.at(ifile).c_str(), "READ");    
-       if (!rootFile) {
-         ATH_MSG_FATAL("Could not retrieve root file: " << fileName.at(ifile));
-         return StatusCode::FAILURE;
-       }
-     
-       TTree *training = (TTree*)rootFile->Get("BDT");
-       if (training) {
-//         bdt[ifile] = new MVAUtils:: BDT(training);
-         MVAUtils::BDT *tmpBDT = new MVAUtils:: BDT(training);
-	       delete training;//<- Crash at finalization if w/o this
-	       delete rootFile; // test
-         bdt.push_back(tmpBDT);
-       }else {
-          ATH_MSG_FATAL("Could not retrieve tree: BDT");
-          return StatusCode::FAILURE;
-       }
-     }
+      TTree *training = (TTree*)rootFile->Get("BDT");
+      if (training) {
+        MVAUtils::BDT *tmpBDT = new MVAUtils:: BDT(training);
+        delete training; //<- Crash at finalization if w/o this
+        delete rootFile; 
+        bdt.push_back(tmpBDT);
+      }else {
+        ATH_MSG_FATAL("Could not retrieve tree: BDT");
+        return StatusCode::FAILURE;
+      }
+    }
 
 //--------------------------------------------------------
 

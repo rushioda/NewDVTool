@@ -682,7 +682,9 @@ namespace VKalVrtAthena {
     declareProperty("DoIntersectionPos",               m_jp.doIntersectionPos               = false                         );
     declareProperty("DoMapToLocal",                    m_jp.doMapToLocal                    = false                         );
     declareProperty("DoTruth",                         m_jp.doTruth                         = false                         );
-    declareProperty("DoPVcompatibility",               m_jp.doPVcompatibilityCut            = true                          );
+//    declareProperty("DoPVcompatibility",               m_jp.doPVcompatibilityCut            = true                          );
+// Ushioda,2021/5/24
+    declareProperty("doPVcompatibilityCut",            m_jp.doPVcompatibilityCut            = true                          );
     declareProperty("RemoveFake2TrkVrt",               m_jp.removeFakeVrt                   = true                          );
     declareProperty("DoDelayedFakeReject",             m_jp.removeFakeVrtLate               = false                         );
     declareProperty("CheckHitPatternStrategy",         m_checkPatternStrategy               = "Classical"                   ); // Either Classical or Extrapolation
@@ -767,13 +769,9 @@ namespace VKalVrtAthena {
     declareProperty("VertexMapper",                    m_vertexMapper                                                       );
     
     // BDT, Ushioda
-    declareProperty("BDTFileName",                     m_jp.BDTFileName                                                        );
-    declareProperty("BDTFileName_long",                m_jp.BDTFileName_long                                                   );
-    declareProperty("BDTFileName_middle",              m_jp.BDTFileName_middle                                                 );
-    declareProperty("BDTFileName_short",               m_jp.BDTFileName_short                                                  );
-    declareProperty("BDTMin_long",                     m_jp.BDTMin_long                                                        );
-    declareProperty("BDTMin_middle",                   m_jp.BDTMin_middle                                                      );
-    declareProperty("BDTMin_short",                    m_jp.BDTMin_short                                                       );
+    declareProperty("BDTFilesName",                    m_jp.BDTFilesName                                                       );
+    declareProperty("BDTMins",                         m_jp.BDTMins                                                            );
+ 
   }
   
   

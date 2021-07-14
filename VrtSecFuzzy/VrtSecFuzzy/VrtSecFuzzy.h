@@ -224,6 +224,9 @@ namespace VKalVrtAthena {
       float BDTMin_long;
       float BDTMin_middle;
       float BDTMin_short;
+      std::vector<std::string> BDTFilesName;
+      std::vector<float> BDTMins;
+
 
     };
     

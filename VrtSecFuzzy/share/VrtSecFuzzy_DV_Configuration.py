@@ -37,32 +37,32 @@ VrtSecFuzzy_InDet.do_z0signifCut                         = False
 VrtSecFuzzy_InDet.doTRTPixCut                            = True
 VrtSecFuzzy_InDet.DoSAloneTRT                            = False
 VrtSecFuzzy_InDet.ImpactWrtBL                            = True
-VrtSecFuzzy_InDet.doPVcompatibilityCut                   = False
-VrtSecFuzzy_InDet.RemoveFake2TrkVrt                      = True
+VrtSecFuzzy_InDet.doPVcompatibilityCut                   = False # maybe default True  
+VrtSecFuzzy_InDet.RemoveFake2TrkVrt                      = False # default True
 VrtSecFuzzy_InDet.CheckHitPatternStrategy                = 'ExtrapolationAssist' # Either 'Classical', 'Extrapolation' or 'ExtrapolationAssist'
-VrtSecFuzzy_InDet.doReassembleVertices                   = True
-VrtSecFuzzy_InDet.doMergeByShuffling                     = True
-VrtSecFuzzy_InDet.doMergeFinalVerticesDistance           = True
-VrtSecFuzzy_InDet.doAssociateNonSelectedTracks           = True
+VrtSecFuzzy_InDet.doReassembleVertices                   = False #default True
+VrtSecFuzzy_InDet.doMergeByShuffling                     = False #default True
+VrtSecFuzzy_InDet.doMergeFinalVerticesDistance           = False #default True
+VrtSecFuzzy_InDet.doAssociateNonSelectedTracks           = False #default True
 VrtSecFuzzy_InDet.doFinalImproveChi2                     = False
 VrtSecFuzzy_InDet.DoTruth                                = (globalflags.DataSource == 'geant4' and globalflags.InputFormat == "pool")
 VrtSecFuzzy_InDet.FillHist                               = True
 VrtSecFuzzy_InDet.FillIntermediateVertices               = True
 VrtSecFuzzy_InDet.CutPixelHits                           = 0
-VrtSecFuzzy_InDet.CutSctHits                             = 2
+VrtSecFuzzy_InDet.CutSctHits                             = 0 # default 2
 VrtSecFuzzy_InDet.TrkA0ErrCut                            = 200000
 VrtSecFuzzy_InDet.TrkZErrCut                             = 200000
-VrtSecFuzzy_InDet.a0TrkPVDstMinCut                       = 2.0    # track d0 min
+VrtSecFuzzy_InDet.a0TrkPVDstMinCut                       = 0.0    # track d0 min: default is 2.0
 VrtSecFuzzy_InDet.a0TrkPVDstMaxCut                       = 300.0  # track d0 max: default is 1000.0
 VrtSecFuzzy_InDet.zTrkPVDstMinCut                        = 0.0    # track z0 min: default is 0.0, just for clarification
 VrtSecFuzzy_InDet.zTrkPVDstMaxCut                        = 1500.0 # track z0 max: default is 1000.0
 VrtSecFuzzy_InDet.twoTrkVtxFormingD0Cut                  = 0.0 # default 2.0
 VrtSecFuzzy_InDet.TrkPtCut                               = 500 # default 1000
-VrtSecFuzzy_InDet.SelVrtChi2Cut                          = 5.
-VrtSecFuzzy_InDet.CutSharedHits                          = 2
+VrtSecFuzzy_InDet.SelVrtChi2Cut                          = 50. # default 5.0
+VrtSecFuzzy_InDet.CutSharedHits                          = 2 
 VrtSecFuzzy_InDet.TrkChi2Cut                             = 50
 VrtSecFuzzy_InDet.TruthTrkLen                            = 1
-VrtSecFuzzy_InDet.SelTrkMaxCutoff                        = 10000
+VrtSecFuzzy_InDet.SelTrkMaxCutoff                        = 6000
 VrtSecFuzzy_InDet.mergeByShufflingAllowance              = 10.
 VrtSecFuzzy_InDet.associatePtCut                         = 1000.
 VrtSecFuzzy_InDet.associateMinDistanceToPV               = 2.
@@ -73,14 +73,8 @@ VrtSecFuzzy_InDet.MergeFinalVerticesScaling              = 0.
 VrtSecFuzzy_InDet.improveChi2ProbThreshold               = 0.0001
 VrtSecFuzzy_InDet.doAugmentDVimpactParametersToMuons     = True
 VrtSecFuzzy_InDet.doAugmentDVimpactParametersToElectrons = True
-VrtSecFuzzy_InDet.BDTFileName                            = "TMVAClassification_BDT.weights_1ns.root"
-VrtSecFuzzy_InDet.BDTFileName_long                       = "TMVAClassification_BDT.weights_1ns.root"
-VrtSecFuzzy_InDet.BDTFileName_middle                     = "TMVAClassification_BDT.weights_p1ns.root"
-VrtSecFuzzy_InDet.BDTFileName_short                      = "TMVAClassification_BDT.weights_p01ns.root"
-VrtSecFuzzy_InDet.BDTMin_long                            = 0.0
-VrtSecFuzzy_InDet.BDTMin_middle                          = 0.0
-VrtSecFuzzy_InDet.BDTMin_short                           = 0.0
-
+VrtSecFuzzy_InDet.BDTFilesName                           = ["TMVAClassification_BDT.weights_1ns.root", "TMVAClassification_BDT.weights_p1ns.root", "TMVAClassification_BDT.weights_p01ns.root"]
+VrtSecFuzzy_InDet.BDTMins                                = [-0.05, -0.05, -0.05]
 
 VrtSecFuzzy_leptons.doSelectTracksFromMuons                = True
 VrtSecFuzzy_leptons.doSelectTracksFromElectrons            = True
@@ -126,14 +120,8 @@ VrtSecFuzzy_leptons.associatePtCut                         = 1000.
 VrtSecFuzzy_leptons.MergeFinalVerticesDist                 = 1.
 VrtSecFuzzy_leptons.MergeFinalVerticesScaling              = 0.
 VrtSecFuzzy_leptons.improveChi2ProbThreshold               = 0.0001
-VrtSecFuzzy_leptons.BDTFileName                            = "TMVAClassification_BDT.weights_1ns.root"
-VrtSecFuzzy_leptons.BDTFileName_long                       = "TMVAClassification_BDT.weights_1ns.root"
-VrtSecFuzzy_leptons.BDTFileName_middle                     = "TMVAClassification_BDT.weights_p1ns.root"
-VrtSecFuzzy_leptons.BDTFileName_short                      = "TMVAClassification_BDT.weights_p01ns.root"
-VrtSecFuzzy_leptons.BDTMin_long                            = 0.0
-VrtSecFuzzy_leptons.BDTMin_middle                          = 0.0
-VrtSecFuzzy_leptons.BDTMin_short                           = 0.0
-
+VrtSecFuzzy_leptons.BDTFilesName                           = ["TMVAClassification_BDT.weights_1ns.root", "TMVAClassification_BDT.weights_p1ns.root", "TMVAClassification_BDT.weights_p01ns.root"]
+VrtSecFuzzy_leptons.BDTMins                                = [0.2, 0.2, 0.2]
 
 # set options related to the vertex fitter
 from TrkVKalVrtFitter.TrkVKalVrtFitterConf import Trk__TrkVKalVrtFitter

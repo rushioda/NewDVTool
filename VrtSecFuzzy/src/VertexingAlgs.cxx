@@ -111,8 +111,7 @@ namespace VKalVrtAthena {
 
         std::vector<float*> VARS({&eta_i, &eta_j, &dEta, &dPhi, &AsymPt, &d0_i, &d0_j, &d0sig_i, &d0sig_j, &z0_i, &z0_j, &dz0_i, &dz0_j, &z0sig_i, &z0sig_j, &FirstHit_i, &FirstHit_j, &diffHits});
 
-
-        if(m_selectedTracks->size()<100){
+        if(m_selectedTracks->size() < 100){
           if(itrk_id%10 == 0 && jtrk_id%10 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << std::endl;
         }else if(m_selectedTracks->size()<1000){
           if(itrk_id%100 == 0 && jtrk_id%100 == 0) std::cout << "USHIODA CHECK, i = " << itrk_id << ", j = " << jtrk_id << std::endl;
@@ -121,14 +120,14 @@ namespace VKalVrtAthena {
         }
  
         std::vector<float> wgtSelect;
-        for(unsigned int ifile = 0; ifile < bdt.size(); ifile++){
+        for(unsigned int ifile = 0; ifile < bdt.size(); ifile ++){
           bdt[ifile]->SetPointers(VARS);
           wgtSelect.push_back( bdt[ifile]->GetClassification() );
         }
 
         bool storePair = false;
-        for(unsigned int ifile = 0; ifile < wgtSelect.size(); ifile++){  
-          if(wgtSelect.at(ifile)>-0.3){
+        for(unsigned int ifile = 0; ifile < wgtSelect.size(); ifile ++){  
+          if(wgtSelect.at(ifile)>m_jp.BDTMins.at(ifile)){
             storePair = true;
           }
         }
@@ -141,7 +140,7 @@ namespace VKalVrtAthena {
         wrkvrt.selectedTrackIndices.emplace_back( itrk_id );
         wrkvrt.selectedTrackIndices.emplace_back( jtrk_id );
         
-        if( fabs( (*itrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut && fabs( (*jtrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut ){ 
+        if( fabs( (*itrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut && fabs( (*jtrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut ){  
           continue;
         }
 
@@ -251,12 +250,25 @@ namespace VKalVrtAthena {
           vertex->auxdata<float>("charge") = wrkvrt.Charge;
           vertex->auxdata<float>("vPos")   = vPos;
           vertex->auxdata<bool>("isFake")  = true;
-//          vertex->auxdata<float>("BDT")    = wgtSelect;
-          vertex->auxdata<float>("BDT_long")    = wgtSelect.at(0);
-          vertex->auxdata<float>("BDT_middle")  = wgtSelect.at(1);
-          vertex->auxdata<float>("BDT_short")   = wgtSelect.at(2);
+          vertex->auxdata<std::vector<float> >("BDTs") = wgtSelect;
+          
+          // Ushioda, 2021/5/24
+          if(wrkvrt.fitQuality() > m_jp.SelVrtChi2Cut){
+            vertex->auxdata<bool>("badChi2") = true;
+          }else{
+            vertex->auxdata<bool>("badChi2") = false;
+          }
+          if((cos( dphi1 ) < -0.8 && cos( dphi2 ) < -0.8)  || vPosMomAngT < -0.8 || vPos < m_jp.pvCompatibilityCut){
+            vertex->auxdata<bool>("badVpos") = true;
+          }else{
+            vertex->auxdata<bool>("badVpos") = false;
+          }
+          if(!this->passedFakeReject( wrkvrt.vertex, (*itrk), (*jtrk) )){
+            vertex->auxdata<bool>("badHit") = true;
+          }else{
+            vertex->auxdata<bool>("badHit") = false;
+          }
         }
-
 
         /////////////////////////////
 
@@ -270,7 +282,7 @@ namespace VKalVrtAthena {
         if( m_jp.FillHist ) m_hists["2trkChi2Dist"]->Fill( log10( wrkvrt.Chi2 ) );
       
         if( wrkvrt.fitQuality() > m_jp.SelVrtChi2Cut) {
-          ATH_MSG_VERBOSE(" > " << __FUNCTION__ << ": failed to pass chi2 threshold." );
+          ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass chi2 threshold." );
           continue;          /* Bad Chi2 */
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kChi2 );
@@ -390,6 +402,7 @@ namespace VKalVrtAthena {
 
     }catch (bad_alloc) {
       ATH_MSG_WARNING( " bad_alloc error is detected in extractIncompatibleTrackPairs " );
+      return StatusCode::FAILURE; //test, Ushioda, 2021/5/19
     }
 
     return StatusCode::SUCCESS;
@@ -399,18 +412,18 @@ namespace VKalVrtAthena {
   //____________________________________________________________________________________________________
   StatusCode VrtSecFuzzy::findNtrackVertices( std::vector<WrkVrt> *workVerticesContainer )
   {
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": begin");
+    ATH_MSG_INFO(" > " << __FUNCTION__ << ": begin");
     
     const auto compSize = m_selectedTracks->size()*(m_selectedTracks->size() - 1)/2 - m_incomp.size();
     if( m_jp.FillHist ) { m_hists["2trkVerticesDist"]->Fill( compSize ); }
     
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": compatible track pair size   = " << compSize );
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": incompatible track pair size = " << m_incomp.size() );
+    ATH_MSG_INFO(" > " << __FUNCTION__ << ": compatible track pair size   = " << compSize );
+    ATH_MSG_INFO(" > " << __FUNCTION__ << ": incompatible track pair size = " << m_incomp.size() );
     
     
     if( true /*compSize < 500*/ ) {
       
-      ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": incompatibility graph finder mode" );
+      ATH_MSG_INFO(" > " << __FUNCTION__ << ": incompatibility graph finder mode" );
       
       // clear the container
       workVerticesContainer->clear();
@@ -616,7 +629,7 @@ namespace VKalVrtAthena {
       
     } else {
     
-      ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": rapid finder mode" );
+      ATH_MSG_INFO(" > " << __FUNCTION__ << ": rapid finder mode" );
       
       struct Cluster {
         Amg::Vector3D position;
@@ -954,9 +967,9 @@ namespace VKalVrtAthena {
       ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": Size of Solution Set: "<< m_ntupleVars->get<unsigned int>( "NumRearrSecVrt" ));
     }
 
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << "----------------------------------------------" );
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": Number of merges = " << mergeCounter << ", Number of track removal = " << removeTrackCounter << ", broken vertices = " << brokenCounter );
-    ATH_MSG_DEBUG(" > " << __FUNCTION__ << "----------------------------------------------" );
+    ATH_MSG_INFO(" > " << __FUNCTION__ << "----------------------------------------------" );
+    ATH_MSG_INFO(" > " << __FUNCTION__ << ": Number of merges = " << mergeCounter << ", Number of track removal = " << removeTrackCounter << ", broken vertices = " << brokenCounter );
+    ATH_MSG_INFO(" > " << __FUNCTION__ << "----------------------------------------------" );
 
     return StatusCode::SUCCESS;
   }
