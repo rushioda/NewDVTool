@@ -172,10 +172,9 @@ namespace VKalVrtAthena {
     
     // Vertexing algorithm configuration
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "extractIncompatibleTrackPairs", &VrtSecFuzzy::extractIncompatibleTrackPairs )     );
-
+/*    
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "findNtrackVertices",            &VrtSecFuzzy::findNtrackVertices )                );
     m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "rearrangeTracks",               &VrtSecFuzzy::rearrangeTracks)                    );
-/*    
     if( m_jp.doReassembleVertices ) {
       m_vertexingAlgorithms.emplace_back( std::pair<std::string, vertexingAlg>( "reassembleVertices",          &VrtSecFuzzy::reassembleVertices )                );
     }

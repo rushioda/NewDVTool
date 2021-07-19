@@ -140,10 +140,6 @@ namespace VKalVrtAthena {
         wrkvrt.selectedTrackIndices.emplace_back( itrk_id );
         wrkvrt.selectedTrackIndices.emplace_back( jtrk_id );
         
-        if( fabs( (*itrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut && fabs( (*jtrk)->d0() ) < m_jp.twoTrkVtxFormingD0Cut ){  
-          continue;
-        }
-
         // Attempt to think the combination is incompatible by default
         m_incomp.emplace_back( std::pair<int, int>(itrk_id, jtrk_id) );
 
@@ -163,7 +159,7 @@ namespace VKalVrtAthena {
         }
       
         if( initVertex.perp() > maxR ) {
-          continue;
+          continue; //r position is out of the fiducial volume
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kInitVtxPosition );
 
@@ -171,21 +167,21 @@ namespace VKalVrtAthena {
         std::vector<double> impactParErrors;
         
         if( !getSVImpactParameters( *itrk, initVertex, impactParameters, impactParErrors) ){
-          continue;
+          continue; // failed to get impact parameters with respect to initVertex
         }
         const auto roughD0_itrk = impactParameters.at(TrkParameter::k_d0);
         const auto roughZ0_itrk = impactParameters.at(TrkParameter::k_z0);
         if( fabs( impactParameters.at(0)) > roughD0Cut || fabs( impactParameters.at(1) ) > roughZ0Cut ) {
-          continue;
+          continue; // impact parameters with respect to initVertex are too large
         }
 
         if( !getSVImpactParameters( *jtrk, initVertex, impactParameters, impactParErrors) ){ 
-          continue;
+          continue; // failed to get impact parameters with respect to initVertex
         }
         const auto roughD0_jtrk = impactParameters.at(TrkParameter::k_d0);
         const auto roughZ0_jtrk = impactParameters.at(TrkParameter::k_z0);
         if( fabs( impactParameters.at(0) ) > roughD0Cut || fabs( impactParameters.at(1) ) > roughZ0Cut ) {
-          continue;
+          continue; // impact parameters with respect to initVertex are too large
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kImpactParamCheck );
        
@@ -223,7 +219,6 @@ namespace VKalVrtAthena {
           m_ntupleVars->get< std::vector<double> >( "All2TrkVrtChiSq" )  .emplace_back(wrkvrt.Chi2);
         }
 
-
         // Create a xAOD::Vertex instance
         xAOD::Vertex *vertex { nullptr };
 //        vertex = new xAOD::Vertex; // Ushioda
@@ -251,25 +246,9 @@ namespace VKalVrtAthena {
           vertex->auxdata<float>("vPos")   = vPos;
           vertex->auxdata<bool>("isFake")  = true;
           vertex->auxdata<std::vector<float> >("BDTs") = wgtSelect;
+          vertex->auxdata<int>("isFake_cutFlow") = 0;
           
-          // Ushioda, 2021/5/24
-          if(wrkvrt.fitQuality() > m_jp.SelVrtChi2Cut){
-            vertex->auxdata<bool>("badChi2") = true;
-          }else{
-            vertex->auxdata<bool>("badChi2") = false;
-          }
-          if((cos( dphi1 ) < -0.8 && cos( dphi2 ) < -0.8)  || vPosMomAngT < -0.8 || vPos < m_jp.pvCompatibilityCut){
-            vertex->auxdata<bool>("badVpos") = true;
-          }else{
-            vertex->auxdata<bool>("badVpos") = false;
-          }
-          if(!this->passedFakeReject( wrkvrt.vertex, (*itrk), (*jtrk) )){
-            vertex->auxdata<bool>("badHit") = true;
-          }else{
-            vertex->auxdata<bool>("badHit") = false;
-          }
         }
-
         /////////////////////////////
 
         uint8_t trkiBLHit,trkjBLHit;
@@ -283,6 +262,7 @@ namespace VKalVrtAthena {
       
         if( wrkvrt.fitQuality() > m_jp.SelVrtChi2Cut) {
           ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass chi2 threshold." );
+          vertex->auxdata<int>("isFake_cutFlow") = 1;
           continue;          /* Bad Chi2 */
         }
         if( m_jp.FillHist ) m_hists["incompMonitor"]->Fill( kChi2 );
@@ -328,14 +308,17 @@ namespace VKalVrtAthena {
         if( m_jp.doPVcompatibilityCut ) {
           if( cos( dphi1 ) < -0.8 && cos( dphi2 ) < -0.8 ) {
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass the vPos cut. (both tracks are opposite against the vertex pos)" );
+            vertex->auxdata<int>("isFake_cutFlow") = 2;
             continue;
           }
           if( vPosMomAngT < -0.8 ) {
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass the vPos cut. (pos-mom directions are opposite)" );
+            vertex->auxdata<int>("isFake_cutFlow") = 3;
             continue;
           }
           if( vPos < m_jp.pvCompatibilityCut ) {
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass the vPos cut." );
+            vertex->auxdata<int>("isFake_cutFlow") = 4;
             continue;
           }
         }
@@ -344,8 +327,8 @@ namespace VKalVrtAthena {
         // fake rejection cuts with track hit pattern consistencies
         if( m_jp.removeFakeVrt && !m_jp.removeFakeVrtLate ) {
           if( !this->passedFakeReject( wrkvrt.vertex, (*itrk), (*jtrk) ) ) {
-          
             ATH_MSG_DEBUG(" > " << __FUNCTION__ << ": failed to pass fake rejection algorithm." );
+            vertex->auxdata<int>("isFake_cutFlow") = 5;
             continue;
           }
         }
@@ -368,6 +351,7 @@ namespace VKalVrtAthena {
         // The vertex passed the quality cut: overwrite isFake to false
         if( m_jp.FillIntermediateVertices && vertex ) {
           vertex->auxdata<bool>("isFake")  = false;
+          vertex->auxdata<int>("isFake_cutFlow") = 6;
         }
       
         // Now this vertex passed all criteria and considred to be a compatible vertices.
